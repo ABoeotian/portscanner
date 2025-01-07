@@ -1,0 +1,266 @@
+// package main
+
+// import (
+// 	// "fmt"
+// 	"fmt"
+// 	"net"
+// 	"strconv"
+// 	"sync"
+// 	"time"
+
+// 	"fyne.io/fyne/container"
+// 	"fyne.io/fyne/dialog"
+// 	"fyne.io/fyne/v2/app"
+// 	"fyne.io/fyne/v2/widget"
+// )
+
+// // 常见端口与服务的映射
+// var portServices = map[int]string{
+// 	21:    "FTP (File Transfer Protocol)",
+// 	22:    "SSH (Secure Shell)",
+// 	23:    "Telnet",
+// 	25:    "SMTP (Simple Mail Transfer Protocol)",
+// 	53:    "DNS (Domain Name System)",
+// 	80:    "HTTP (HyperText Transfer Protocol)",
+// 	443:   "HTTPS (HTTP Secure)",
+// 	3306:  "MySQL Database",
+// 	5432:  "PostgreSQL Database",
+// 	8080:  "HTTP Alternate (Commonly used for proxy servers)",
+// 	6379:  "Redis",
+// 	27017: "MongoDB",
+// 	3389:  "RDP (Remote Desktop Protocol)",
+// 	5900:  "VNC (Virtual Network Computing)",
+// }
+
+// // 常见漏洞映射
+// var portVulnerabilities = map[int][]string{
+// 	21:    {"Anonymous FTP login", "Weak FTP password"},
+// 	22:    {"Brute-force SSH login", "Outdated OpenSSH versions"},
+// 	23:    {"Plaintext transmission", "No encryption"},
+// 	25:    {"Open relay", "Spam relay"},
+// 	53:    {"DNS Cache Poisoning", "DDoS amplification"},
+// 	80:    {"Cross-Site Scripting (XSS)", "SQL Injection", "Directory Traversal"},
+// 	443:   {"SSL/TLS vulnerabilities", "Heartbleed", "POODLE attack"},
+// 	3306:  {"Weak MySQL password", "Remote code execution", "Privilege escalation"},
+// 	5432:  {"PostgreSQL default configuration", "SQL Injection"},
+// 	8080:  {"Proxy misconfigurations", "Default Tomcat credentials"},
+// 	6379:  {"Unauthorized access", "Remote code execution"},
+// 	27017: {"No authentication", "Denial of Service", "Unauthorized access"},
+// 	3389:  {"RDP brute-force", "Unpatched vulnerabilities"},
+// 	5900:  {"Weak VNC password", "No encryption", "Brute-force attack"},
+// }
+
+// // 扫描单个端口
+// func scanPort(host string, port int, wg *sync.WaitGroup, resultChannel chan string) {
+// 	defer wg.Done()
+
+// 	address := host + ":" + strconv.Itoa(port)
+// 	conn, err := net.DialTimeout("tcp", address, 1*time.Second) // 设置1s超时
+
+// 	if err != nil {
+// 		// 如果连接失败, 表示端口关闭
+// 		resultChannel <- fmt.Sprintf("Port %d is closed", port)
+// 		return
+// 	}
+// 	defer conn.Close()
+
+// 	// 如果连接成功, 表示端口开放
+// 	service := portServices[port]
+// 	vulnerabilities := portVulnerabilities[port]
+
+// 	result := fmt.Sprintf("Port %d is open\n", port)
+// 	if service != "" {
+// 		result += fmt.Sprintf("Service: %s\n", service)
+// 	}
+// 	if len(vulnerabilities) > 0 {
+// 		result += "Possible Vulnerabilities:\n"
+// 		for _, vuln := range vulnerabilities {
+// 			result += fmt.Sprintf("- %s\n", vuln)
+// 		}
+// 	}
+// 	resultChannel <- result
+// }
+
+// // 扫描端口范围
+// func scanPorts(host string, startPort, endPort int, resultText *widget.TextGrid) {
+// 	var wg sync.WaitGroup
+// 	resultChannel := make(chan string)
+
+// 	// 清空之前的扫描结果
+// 	resultText.SetText("Scanning...\n")
+
+// 	// 扫描端口范围
+// 	for port := startPort; port <= endPort; port++ {
+// 		wg.Add(1)                                   // 添加一个等待任务
+// 		go scanPort(host, port, &wg, resultChannel) // 启动 Goroutine 执行扫描
+// 	}
+
+// 	// 等待所有 Goroutine 完成
+// 	go func() {
+// 		wg.Wait()
+// 		close(resultChannel)
+// 	}()
+
+// 	// 显示扫描结果
+// 	for result := range resultChannel {
+// 		resultText.SetText(resultText.Text + result + "\n")
+// 	}
+// }
+
+// func main() {
+// 	// 创建应用
+// 	myApp := app.New()
+// 	myWindow := myApp.NewWindow("Port Scanner")
+
+// 	// 创建输入框
+// 	hostEntry := widget.NewEntry()
+// 	hostEntry.SetPlaceHolder("Enter host (e.g., 192.168.1.1)")
+
+// 	startPortEntry := widget.NewEntry()
+// 	startPortEntry.SetPlaceHolder("Enter end port")
+
+// 	endPortEntry := widget.NewEntry()
+// 	endPortEntry.SetPlaceHolder("Enter end port")
+
+// 	// 创建显示扫描结果的 TextGrid
+// 	resultText := widget.NewTextGrid()
+
+// 	// 创建开始扫描按钮
+// 	startButton := widget.NewButton("Start Scan", func() {
+// 		host := hostEntry.Text
+// 		startPort, err1 := strconv.Atoi(startPortEntry.Text)
+// 		endPort, err2 := strconv.Atoi(endPortEntry.Text)
+
+// 		if err1 != nil || err2 != nil || host == "" {
+// 			dialog.ShowError(fmt.Errorf("Invalid input. Please check the host and port range."), myWindow)
+// 			return
+// 		}
+
+// 		// 执行端口扫描
+// 		go scanPorts(host, startPort, endPort, resultText)
+// 	})
+
+// 	// 布局设置
+// 	content := container.NewVBox(
+// 		widget.NewLabel("Port Scanner"),
+// 		hostEntry,
+// 		startPortEntry,
+// 		endPortEntry,
+// 		startButton,
+// 		resultText,
+// 	)
+
+// 	myWindow.SetContent(content)
+
+//		// 运行应用
+//		myWindow.ShowAndRun()
+//	}
+// - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // -
+// - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // -
+// - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // -
+// - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // -
+// - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // - // -
+
+package main
+
+import (
+	"fmt"     // 用于格式化输出
+	"net"     // 用于进行网络连接操作
+	"os"      // 用于获取命令行参数等
+	"strconv" // 用于字符串与数字之间的转换
+	"sync"    // 用于实现并发扫描
+	"time"    // 用于设置超时时间等
+)
+
+// 常见的端口与服务映射组
+var portServices = map[int]string{
+	21:    "FTP (File Transfer Protocol)",
+	22:    "SSH (Secure Shell)",
+	23:    "Telnet",
+	25:    "SMTP (Simple Mail Transfer Protocol)",
+	53:    "DNS (Domain Name System)",
+	80:    "HTTP (HyperText Transfer Protocol)",
+	443:   "HTTPS (HTTP Secure)",
+	3306:  "MySQL Database",
+	5432:  "PostgreSQL Database",
+	8080:  "HTTP Alternate (Commonly used for proxy servers)",
+	6379:  "Redis",
+	27017: "MongoDB",
+	3389:  "RDP (Remote Desktop Protocol)",
+	5900:  "VNC (Virtual Network Computing)",
+}
+
+// 常见漏洞映射
+var portVulnerabilities = map[int][]string{
+	21:    {"Anonymous FTP login", "Weak FTP password"},
+	22:    {"Brute-force SSH login", "Outdated OpenSSH versions"},
+	23:    {"Plaintext transmission", "No encryption"},
+	25:    {"Open relay", "Spam relay"},
+	53:    {"DNS Cache Poisoning", "DDoS amplification"},
+	80:    {"Cross-Site Scripting (XSS)", "SQL Injection", "Directory Traversal"},
+	443:   {"SSL/TLS vulnerabilities", "Heartbleed", "POODLE attack"},
+	3306:  {"Weak MySQL password", "Remote code execution", "Privilege escalation"},
+	5432:  {"PostgreSQL default configuration", "SQL Injection"},
+	8080:  {"Proxy misconfigurations", "Default Tomcat credentials"},
+	6379:  {"Unauthorized access", "Remote code execution"},
+	27017: {"No authentication", "Denial of Service", "Unauthorized access"},
+	3389:  {"RDP brute-force", "Unpatched vulnerabilities"},
+	5900:  {"Weak VNC password", "No encryption", "Brute-force attack"},
+}
+
+func scanPort(host string, port int, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	address := host + ":" + strconv.Itoa(port)
+	conn, err := net.DialTimeout("tcp", address, 1*time.Second) // 设置1s超时
+
+	if err != nil {
+		// 如果连接失败 表示端口关闭
+		return
+	}
+	defer conn.Close()
+
+	// 如果连接成功, 表示端口开放
+	service := portServices[port]
+	vulnerabilities := portVulnerabilities[port]
+
+	fmt.Println("Port", port, "is open")
+	if service != "" {
+		fmt.Println("Service: ", service)
+	}
+	if len(vulnerabilities) > 0 {
+		fmt.Println("Possible Vulnerabilities:")
+		for _, vuln := range vulnerabilities {
+			fmt.Println("- " + vuln)
+		}
+	}
+}
+
+func main() {
+	if len(os.Args) != 4 {
+		fmt.Println("Usage: go run main.go <host> <startPort> <endPort>")
+		os.Exit(1)
+	}
+
+	host := os.Args[1]
+	startPort, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		fmt.Println("Invalid start port: ", os.Args[2])
+		os.Exit(1)
+	}
+	endPort, err := strconv.Atoi(os.Args[3])
+	if err != nil {
+		fmt.Println("Invalid end port: ", os.Args[3])
+		os.Exit(1)
+	}
+
+	var wg sync.WaitGroup
+
+	// 并发扫描端口范围
+	for port := startPort; port <= endPort; port++ {
+		wg.Add(1)                    // 添加一个等待任务
+		go scanPort(host, port, &wg) // 启动 Goroutine执行扫描
+	}
+	wg.Wait() // 等待所有 Goroutine 完成
+	fmt.Println("Scanning complete.")
+}
